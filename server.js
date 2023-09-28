@@ -3,11 +3,20 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import Messages from './dbmessages.js';
+import Pusher from 'pusher';
 
 // Create an Express application
 const app = express();
 const port = process.env.PORT || 9000;
 const connection_url = "mongodb+srv://user123:user123@projects.xfmdcao.mongodb.net/Whatsapp-backend?retryWrites=true&w=majority";
+const pusher = new Pusher({
+    appId: "1678351",
+    key: "01be9c1ed4d63665bf03",
+    secret: "389e63f3c927cc9a4c81",
+    cluster: "ap2",
+    useTLS: true
+  });
+
 
 // Middleware to parse JSON requests
 app.use(express.json());
@@ -24,6 +33,18 @@ app.use(express.json());
         console.error('Error connecting to the database:', error.message);
     }
 })();
+
+const db =mongoose.connection
+
+db.once('open',()=>{
+    console.log('DB is connected');
+    const msgCollection =db.collection("messagecontents");
+    const changeStream =msgCollection.watch();
+
+    changeStream.on('change',(change)=>{
+        console.log(change);
+    })
+});
 
 // Define a GET route for the root URL
 app.get('/', (req, res) => res.status(200).send('Hello world'));
