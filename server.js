@@ -4,6 +4,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import Messages from './dbmessages.js';
 import Pusher from 'pusher';
+import cors from 'cors';
 
 // Create an Express application
 const app = express();
@@ -20,7 +21,13 @@ const pusher = new Pusher({
 
 // Middleware to parse JSON requests
 app.use(express.json());
+app.use(cors());
 
+app.use ((req, res,next)=>{
+    res.setHeader("Access-Control-Allow-Origin","*");
+    res.setHeader("Access-Control-Allow-Headers" ,"*");
+    next();
+});
 // Connect to the MongoDB database
 (async () => {
     try {
@@ -43,6 +50,20 @@ db.once('open',()=>{
 
     changeStream.on('change',(change)=>{
         console.log(change);
+
+        if (change.operationType ==='insert'){
+            const messageDetails =change.fullDocument;
+            pusher.trigger('messages' ,'inserted',
+            {
+                name:messageDetails.name,
+                message:messageDetails.message,
+                timestamp:messageDetails.timestamp,
+                received :messageDetails.received
+
+            })
+        } else {
+                console.log('Error triggering Pusher')
+        }
     })
 });
 
